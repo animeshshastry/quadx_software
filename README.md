@@ -8,7 +8,7 @@ Control: SE(3) | Status: Incomplete
 
 Estimator: UKF | Status: Incomplete
 
-Estimatoe: sq-UKF | Status: Incomplete
+Estimator: sq-UKF | Status: Incomplete
 
 ...
 
