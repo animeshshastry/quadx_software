@@ -110,7 +110,7 @@ void getIMUdata() {
     //Accelerometer
     AccX = IMU.accX() / ACCEL_SCALE_FACTOR; //G's
     AccY = IMU.accY() / ACCEL_SCALE_FACTOR;
-    AccZ = IMU.accZ() / ACCEL_SCALE_FACTOR - 1.0;
+    AccZ = IMU.accZ() / ACCEL_SCALE_FACTOR;
     //Correct the outputs with the calculated error values
     AccX = AccX - AccErrorX;
     AccY = AccY - AccErrorY;
@@ -202,7 +202,7 @@ void printIMUdata(int print_rate) {
     SERIAL_PORT.print(F(" raw accX: "));
     SERIAL_PORT.print(acc_plot_scaling * IMU.agmt.acc.axes.y / 16384.0);
     SERIAL_PORT.print(F(" raw accZ: "));
-    SERIAL_PORT.println(acc_plot_scaling * (IMU.agmt.acc.axes.z / 16384.0 - 1.0));
+    SERIAL_PORT.println(acc_plot_scaling * (IMU.agmt.acc.axes.z / 16384.0));
     //    SERIAL_PORT.print(F(" raw gyroX: "));
     //    SERIAL_PORT.print(GyroX);
     //    SERIAL_PORT.print(F(" raw gyroY: "));

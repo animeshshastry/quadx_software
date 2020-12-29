@@ -1,7 +1,22 @@
+#include <ros.h>
+#include <sensor_msgs/Imu.h>
+#include <nav_msgs/Odometry.h>
+
+#define ROS_COMM true     //One serial is used for both debugging and ros communication
+
+#if (ROS_COMM)
+ros::NodeHandle  nh;
+sensor_msgs::Imu imu_msg;
+ros::Publisher imu_pub("imu_data", &imu_msg);
+nav_msgs::Odometry odom_msg;
+ros::Publisher odom_pub("odom_data", &odom_msg);
+#endif
+
 #include <ICM_20948.h>
 ICM_20948_I2C IMU;
 
 #define micros2secs 1.0/1000000.0
+#define secs2nsecs 1000000000.0
 #define loop_freq 100
 
 #define SERIAL_PORT Serial
@@ -12,7 +27,7 @@ ICM_20948_I2C IMU;
 #define maxYaw 160.0     //Max yaw rate in deg/sec
 
 //IMU:
-#define ACCEL_SCALE_FACTOR 1000.0
+#define ACCEL_SCALE_FACTOR 1000.0 * 9.81
 #define deg2rad 0.01745329252
 float AccX, AccY, AccZ;
 float GyroX, GyroY, GyroZ;
@@ -53,8 +68,14 @@ float q2 = 0.0f;
 float q3 = 0.0f;
 
 void setup() {
-  // put your setup code here, to run once:
+
+#if (!ROS_COMM)
   SERIAL_PORT.begin(57600); //usb serial
+#else
+  nh.initNode();
+  nh.advertise(imu_pub);
+  nh.advertise(odom_pub);
+#endif
 
   //Initialize all pins
   pinMode(13, OUTPUT); //pin 13 LED blinker on board, do not modify
@@ -78,7 +99,7 @@ void loop() {
   dt = (current_time - prev_time) * micros2secs;
 
   loopBlink(); //indicate we are in main loop with short blink every 1.5 seconds
-  
+
   //Get vehicle commands
   getCommands(); //pulls current available radio commands
   failSafe(); //prevent failures in event of bad receiver connection, defaults to failsafe values assigned in setup
@@ -89,20 +110,56 @@ void loop() {
   getIMUdata();
 
   //Madgwick Sensor Fusion
-  //Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ+1.0, MagY, -MagX, MagZ, dt); //updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
-  Madgwick6DOF(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ + 1.0, dt);
+  //Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
+  Madgwick6DOF(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, dt);
 
+#if (!ROS_COMM)
+  // These are all for debugging purposes only
   //printRadioData(100);
   //printDesiredState(100);
   //printGyroData(100);
   //printAccelData(100);
   //printMagData(100);
   //printIMUdata(100);
-  //printMadgwickRollPitchYaw(100);
+  printMadgwickRollPitchYaw(100);
   //printLoopRate(10);
+#else
+  // For publishing to a ros topic
+  ros_publish_imu();
+  ros_publish_odom();
+  nh.spinOnce();
+#endif
 
   //Regulate loop rate
   loopWait();
+}
+
+void ros_publish_odom(){
+  odom_msg.header.frame_id = "map";
+  odom_msg.child_frame_id = "map";
+  odom_msg.header.stamp.sec = current_time * micros2secs;
+  odom_msg.header.stamp.nsec = (current_time*micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
+  odom_msg.pose.pose.orientation.x = q1;
+  odom_msg.pose.pose.orientation.y = q2;
+  odom_msg.pose.pose.orientation.z = q3;
+  odom_msg.pose.pose.orientation.w = q0;
+  odom_msg.twist.twist.angular.x = GyroX;
+  odom_msg.twist.twist.angular.y = GyroY;
+  odom_msg.twist.twist.angular.z = GyroZ;
+  odom_pub.publish( &odom_msg );
+}
+
+void ros_publish_imu(){
+  imu_msg.header.frame_id = "map";
+  imu_msg.header.stamp.sec = current_time * micros2secs;
+  imu_msg.header.stamp.nsec = (current_time*micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
+  imu_msg.linear_acceleration.x = AccX;
+  imu_msg.linear_acceleration.y = AccY;
+  imu_msg.linear_acceleration.z = AccZ;
+  imu_msg.angular_velocity.x = GyroX;
+  imu_msg.angular_velocity.y = GyroY;
+  imu_msg.angular_velocity.z = GyroZ;
+  imu_pub.publish( &imu_msg );
 }
 
 void loopWait() {
@@ -124,9 +181,9 @@ void printLoopRate(int print_rate) {
   }
 }
 
-void setupBlink(int numBlinks,int upTime, int downTime) {
+void setupBlink(int numBlinks, int upTime, int downTime) {
   //DESCRIPTION: Simple function to make LED on board blink as desired
-  for (int j = 1; j<= numBlinks; j++) {
+  for (int j = 1; j <= numBlinks; j++) {
     digitalWrite(13, LOW);
     delay(downTime);
     digitalWrite(13, HIGH);
@@ -137,19 +194,19 @@ void setupBlink(int numBlinks,int upTime, int downTime) {
 void loopBlink() {
   //DESCRIPTION: Blink LED on board to indicate main loop is running
   /*
-   * It looks cool.
-   */
+     It looks cool.
+  */
   if ( (current_time - blink_counter) * micros2secs > blink_delay) {
     blink_counter = micros();
     digitalWrite(13, blinkAlternate); //pin 13 is built in LED
-    
+
     if (blinkAlternate == 1) {
       blinkAlternate = 0;
       blink_delay = 0.8;
-      }
+    }
     else if (blinkAlternate == 0) {
       blinkAlternate = 1;
       blink_delay = 1;
-      }
+    }
   }
 }
