@@ -3,21 +3,21 @@ float B_madgwick = 0.1;  //Madgwick filter parameter
 void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float invSampleFreq) {
   //DESCRIPTION: Attitude estimation through sensor fusion - 9DOF
   /*
-   * This function fuses the accelerometer gyro, and magnetometer readings AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, and MagZ for attitude estimation.
-   * Don't worry about the math. There is a tunable parameter B_madgwick in the user specified variable section which basically
-   * adjusts the weight of gyro data in the state estimate. Higher beta leads to noisier estimate, lower 
-   * beta leads to slower to respond estimate. It is currently tuned for 2kHz loop rate. This function updates the roll_IMU,
-   * pitch_IMU, and yaw_IMU variables which are in degrees. If magnetometer data is not available, this function calls Madgwick6DOF() instead.
-   */
+     This function fuses the accelerometer gyro, and magnetometer readings AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, and MagZ for attitude estimation.
+     Don't worry about the math. There is a tunable parameter B_madgwick in the user specified variable section which basically
+     adjusts the weight of gyro data in the state estimate. Higher beta leads to noisier estimate, lower
+     beta leads to slower to respond estimate. It is currently tuned for 2kHz loop rate. This function updates the roll,
+     pitch, and yaw variables which are in degrees. If magnetometer data is not available, this function calls Madgwick6DOF() instead.
+  */
   float recipNorm;
   float s0, s1, s2, s3;
   float qDot1, qDot2, qDot3, qDot4;
   float hx, hy;
   float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
   float mholder;
-  
+
   //Use 6DOF algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
-  if((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
+  if ((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f)) {
     Madgwick6DOF(gx, gy, gz, ax, ay, az, invSampleFreq);
     return;
   }
@@ -29,7 +29,7 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
   qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
 
   //Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-  if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+  if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
 
     //Normalise accelerometer measurement
     recipNorm = invSqrt(ax * ax + ay * ay + az * az);
@@ -103,23 +103,23 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
   q1 *= recipNorm;
   q2 *= recipNorm;
   q3 *= recipNorm;
-  
+
   //compute angles - NWU
-  roll_IMU = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2)*57.29577951; //degrees
-  pitch_IMU = -asin(-2.0f * (q1*q3 - q0*q2))*57.29577951; //degrees
-  yaw_IMU = -atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3)*57.29577951; //degrees
+  roll = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
+  pitch = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
+  yaw = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
 }
 
 void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, float invSampleFreq) {
   //DESCRIPTION: Attitude estimation through sensor fusion - 6DOF
   /*
-   * See description of Madgwick() for more information. This is a 6DOF implimentation for when magnetometer data is not
-   * available (for example when using the recommended MPU6050 IMU for the default setup).
-   */
+     See description of Madgwick() for more information. This is a 6DOF implimentation for when magnetometer data is not
+     available (for example when using the recommended MPU6050 IMU for the default setup).
+  */
   float recipNorm;
   float s0, s1, s2, s3;
   float qDot1, qDot2, qDot3, qDot4;
-  float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 ,_8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
+  float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 , _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
 
   //Rate of change of quaternion from gyroscope
   qDot1 = 0.5f * (-q1 * gx - q2 * gy - q3 * gz);
@@ -128,7 +128,7 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
   qDot4 = 0.5f * (q0 * gz + q1 * gy - q2 * gx);
 
   //Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
-  if(!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
+  if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f))) {
     //Normalise accelerometer measurement
     recipNorm = invSqrt(ax * ax + ay * ay + az * az);
     ax *= recipNorm;
@@ -181,23 +181,28 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
   q2 *= recipNorm;
   q3 *= recipNorm;
 
-  //compute angles
-  roll_IMU = atan2(q0*q1 + q2*q3, 0.5f - q1*q1 - q2*q2)*57.29577951; //degrees
-  pitch_IMU = -asin(-2.0f * (q1*q3 - q0*q2))*57.29577951; //degrees
-  yaw_IMU = -atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3)*57.29577951; //degrees
+//  //compute angles
+//  roll = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
+//  pitch = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
+//  yaw = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
+
+//  //compute angles
+//  roll = atan2(2 * (q0 * q1 + q2 * q3), 1.0f - 2 * (q1 * q1 + q2 * q2)) * 57.29577951; //degrees
+//  pitch = asin(2.0f * (q0 * q2 - q3 * q1)) * 57.29577951; //degrees
+//  yaw = atan2(2 * (q1 * q2 + q0 * q3), 1.0f - 2 * (q2 * q2 + q3 * q3)) * 57.29577951; //degrees
 }
 
 float invSqrt(float x) {
   //Fast inverse sqrt for madgwick filter
   /*
-  float halfx = 0.5f * x;
-  float y = x;
-  long i = *(long*)&y;
-  i = 0x5f3759df - (i>>1);
-  y = *(float*)&i;
-  y = y * (1.5f - (halfx * y * y));
-  y = y * (1.5f - (halfx * y * y));
-  return y;
+    float halfx = 0.5f * x;
+    float y = x;
+    long i = *(long*)&y;
+    i = 0x5f3759df - (i>>1);
+    y = *(float*)&i;
+    y = y * (1.5f - (halfx * y * y));
+    y = y * (1.5f - (halfx * y * y));
+    return y;
   */
   //alternate form:
   unsigned int i = 0x5F1F1412 - (*(unsigned int*)&x >> 1);
@@ -210,10 +215,37 @@ void printMadgwickRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
     SERIAL_PORT.print(F("roll: "));
-    SERIAL_PORT.print(roll_IMU);
+    SERIAL_PORT.print(roll);
     SERIAL_PORT.print(F(" pitch: "));
-    SERIAL_PORT.print(pitch_IMU);
+    SERIAL_PORT.print(pitch);
     SERIAL_PORT.print(F(" yaw: "));
-    SERIAL_PORT.println(yaw_IMU);
+    SERIAL_PORT.println(yaw);
+  }
+}
+void printVisualizationYawPitchRoll(int print_rate) {
+  if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
+    print_counter = micros();
+    SERIAL_PORT.print("Orientation: ");
+    //    SERIAL_PORT.print(F(" yaw: "));
+    SERIAL_PORT.print(rad2deg*yaw);
+    //    SERIAL_PORT.print(F(" pitch: "));
+    SERIAL_PORT.print(" ");
+    SERIAL_PORT.print(rad2deg*pitch);
+    //    SERIAL_PORT.print(F("roll: "));
+    SERIAL_PORT.print(" ");
+    SERIAL_PORT.println(rad2deg*roll);
+  }
+}
+void printMadgwickQuaternions(int print_rate) {
+  if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
+    print_counter = micros();
+    SERIAL_PORT.print(F("q0: "));
+    SERIAL_PORT.print(q0);
+    SERIAL_PORT.print(F(" q1: "));
+    SERIAL_PORT.print(q1);
+    SERIAL_PORT.print(F(" q2: "));
+    SERIAL_PORT.print(q2);
+    SERIAL_PORT.print(F(" q3: "));
+    SERIAL_PORT.println(q3);
   }
 }

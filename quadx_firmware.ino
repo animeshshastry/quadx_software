@@ -1,16 +1,18 @@
 #include <ros.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
+#include <Geometry.h> // Geometry library uses basiclinearalgebra (not matrixmath)
+//#include "konfig.h"
+//#include "matrix.h"
+//#include "ukf.h"
 
-#define ROS_COMM true     //One serial is used for both debugging and ros communication
+#define ROS_COMM false     //One serial is used for both debugging and ros communication
 
-#if (ROS_COMM)
 ros::NodeHandle  nh;
 sensor_msgs::Imu imu_msg;
 ros::Publisher imu_pub("imu_data", &imu_msg);
 nav_msgs::Odometry odom_msg;
 ros::Publisher odom_pub("odom_data", &odom_msg);
-#endif
 
 #include <ICM_20948.h>
 ICM_20948_I2C IMU;
@@ -61,14 +63,16 @@ unsigned long blink_counter, blink_delay;
 bool blinkAlternate;
 
 //Orientation
-float roll_IMU, pitch_IMU, yaw_IMU;
+#define rad2deg 57.29577951
+float roll, pitch, yaw;
 float q0 = 1.0f; //initialize quaternion
 float q1 = 0.0f;
 float q2 = 0.0f;
 float q3 = 0.0f;
+Rotation R_b_i;
 
 void setup() {
-
+  
 #if (!ROS_COMM)
   SERIAL_PORT.begin(57600); //usb serial
 #else
@@ -76,7 +80,7 @@ void setup() {
   nh.advertise(imu_pub);
   nh.advertise(odom_pub);
 #endif
-
+  
   //Initialize all pins
   pinMode(13, OUTPUT); //pin 13 LED blinker on board, do not modify
   //Set built in LED to turn on to signal startup & not to disturb vehicle during IMU calibration
@@ -111,7 +115,10 @@ void loop() {
 
   //Madgwick Sensor Fusion
   //Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
-  Madgwick6DOF(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, dt);
+  Madgwick6DOF(GyroX, GyroY, GyroZ, AccX, AccY, AccZ, dt);
+//  R_b_i.FromEulerAngles(roll_IMU,pitch_IMU,yaw_IMU);
+  R_b_i.FromQuaternions(q0,q1,q2,q3);
+  populateEulerAnglesFrom(R_b_i);
 
 #if (!ROS_COMM)
   // These are all for debugging purposes only
@@ -121,7 +128,9 @@ void loop() {
   //printAccelData(100);
   //printMagData(100);
   //printIMUdata(100);
-  printMadgwickRollPitchYaw(100);
+//  printMadgwickRollPitchYaw(100);
+  printVisualizationYawPitchRoll(100);
+//  printMadgwickQuaternions(100);
   //printLoopRate(10);
 #else
   // For publishing to a ros topic
@@ -133,6 +142,15 @@ void loop() {
   //Regulate loop rate
   loopWait();
 }
+
+void populateEulerAnglesFrom(Rotation R_b_i){
+    Matrix<3,2> Eul_set = R_b_i.ToEulerAngles();
+//  Serial << "Euler angles: " << Eul_set  << "\n";
+  roll = Eul_set(0,0);
+  pitch = Eul_set(1,0);
+  yaw = Eul_set(2,0);
+}
+
 
 void ros_publish_odom(){
   odom_msg.header.frame_id = "map";
