@@ -72,7 +72,7 @@ float q3 = 0.0f;
 Rotation R_b_i;
 
 void setup() {
-  
+
 #if (!ROS_COMM)
   SERIAL_PORT.begin(57600); //usb serial
 #else
@@ -80,7 +80,7 @@ void setup() {
   nh.advertise(imu_pub);
   nh.advertise(odom_pub);
 #endif
-  
+
   //Initialize all pins
   pinMode(13, OUTPUT); //pin 13 LED blinker on board, do not modify
   //Set built in LED to turn on to signal startup & not to disturb vehicle during IMU calibration
@@ -116,8 +116,8 @@ void loop() {
   //Madgwick Sensor Fusion
   //Madgwick(GyroX, -GyroY, -GyroZ, -AccX, AccY, AccZ, MagY, -MagX, MagZ, dt); //updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
   Madgwick6DOF(GyroX, GyroY, GyroZ, AccX, AccY, AccZ, dt);
-//  R_b_i.FromEulerAngles(roll_IMU,pitch_IMU,yaw_IMU);
-  R_b_i.FromQuaternions(q0,q1,q2,q3);
+  //  R_b_i.FromEulerAngles(roll_IMU,pitch_IMU,yaw_IMU);
+  R_b_i.FromQuaternions(q0, q1, q2, q3);
   populateEulerAnglesFrom(R_b_i);
 
 #if (!ROS_COMM)
@@ -128,9 +128,9 @@ void loop() {
   //printAccelData(100);
   //printMagData(100);
   //printIMUdata(100);
-//  printMadgwickRollPitchYaw(100);
-  printVisualizationYawPitchRoll(100);
-//  printMadgwickQuaternions(100);
+  //  printMadgwickRollPitchYaw(100);
+  //  printVisualizationYawPitchRoll(100);
+  //  printMadgwickQuaternions(100);
   //printLoopRate(10);
 #else
   // For publishing to a ros topic
@@ -143,20 +143,20 @@ void loop() {
   loopWait();
 }
 
-void populateEulerAnglesFrom(Rotation R_b_i){
-    Matrix<3,2> Eul_set = R_b_i.ToEulerAngles();
-//  Serial << "Euler angles: " << Eul_set  << "\n";
-  roll = Eul_set(0,0);
-  pitch = Eul_set(1,0);
-  yaw = Eul_set(2,0);
+void populateEulerAnglesFrom(Rotation R_b_i) {
+  Matrix<3, 2> Eul_set = R_b_i.ToEulerAngles();
+  //  Serial << "Euler angles: " << Eul_set  << "\n";
+  roll = Eul_set(0, 0);
+  pitch = Eul_set(1, 0);
+  yaw = Eul_set(2, 0);
 }
 
 
-void ros_publish_odom(){
+void ros_publish_odom() {
   odom_msg.header.frame_id = "map";
   odom_msg.child_frame_id = "map";
   odom_msg.header.stamp.sec = current_time * micros2secs;
-  odom_msg.header.stamp.nsec = (current_time*micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
+  odom_msg.header.stamp.nsec = (current_time * micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
   odom_msg.pose.pose.orientation.x = q1;
   odom_msg.pose.pose.orientation.y = q2;
   odom_msg.pose.pose.orientation.z = q3;
@@ -167,10 +167,10 @@ void ros_publish_odom(){
   odom_pub.publish( &odom_msg );
 }
 
-void ros_publish_imu(){
+void ros_publish_imu() {
   imu_msg.header.frame_id = "map";
   imu_msg.header.stamp.sec = current_time * micros2secs;
-  imu_msg.header.stamp.nsec = (current_time*micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
+  imu_msg.header.stamp.nsec = (current_time * micros2secs - imu_msg.header.stamp.sec) * secs2nsecs;
   imu_msg.linear_acceleration.x = AccX;
   imu_msg.linear_acceleration.y = AccY;
   imu_msg.linear_acceleration.z = AccZ;
