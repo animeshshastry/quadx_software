@@ -16,7 +16,7 @@ Estimator: UKF | Status: Complete
 
 Estimator: sq-UKF | Status: Incomplete
 
-...
+This firmware was developed to satisfy the following objectives:
 
 Primary Goal 1: Demonstration of self-calibration | Status: Not started
 
