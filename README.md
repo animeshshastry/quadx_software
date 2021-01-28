@@ -1,6 +1,6 @@
 # quadx_firmware
  
-Made for and tested on Teensy 4.0
+#### Made for and tested on Teensy 4.0
 
 To use this firmware follow these 2 easy steps:
 1.  Clone this repository in your Arduino folder.
@@ -10,20 +10,15 @@ To use this firmware follow these 2 easy steps:
 
 This firmware contains Implementations of
 
-Control: SE(3) | Status: Complete
-
-Estimator: UKF | Status: Complete
-
-Estimator: sq-UKF | Status: Incomplete
+Control: SE(3) | Status: Complete<br/>
+Estimator: UKF | Status: Complete<br/>
+Estimator: sq-UKF | Status: Incomplete<br/>
 
 This firmware was developed to satisfy the following objectives:
 
-Primary Goal 1: Demonstration of self-calibration | Status: Not started
+Primary Goal 1: Demonstration of self-calibration | Status: Not started<br/>
+Primary Goal 2: Demonstration of unsteady wind rejection | Status: Not started<br/>
 
-Primary Goal 2: Demonstration of unsteady wind rejection | Status: Not started
-
-Secondary Goal 1: Nonlinear control testing | Status: In Progress
-
-Secondary Goal 2: Dyanmical Estimation testing | Status: In Progress
-
-Secondary Goal 3: Localization indoors using VIO | Status: Complete
+Secondary Goal 1: Nonlinear control testing | Status: In Progress<br/>
+Secondary Goal 2: Dyanmical Estimation testing | Status: In Progress<br/>
+Secondary Goal 3: Localization indoors using VIO | Status: Complete<br/>
