@@ -1,6 +1,6 @@
 # quadx_firmware
  
-#### Made for and tested on Teensy 4.0
+#### Made for self-calibration, system-identification and gust rejection demonstration. Tested on Teensy 4.0
 
 The firmware is currently being built and is being tested on a quadcopter / quadrotor.
 
