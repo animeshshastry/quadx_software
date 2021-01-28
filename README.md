@@ -2,7 +2,7 @@
  
 ### Made for self-calibration, system-identification and gust rejection demonstration. Tested on Teensy 4.0
 
-The firmware is currently being built and is being tested on a quadcopter / quadrotor.
+The firmware is currently being built and is being tested on a quadcopter / quadrotor. To use SE(3) controller, VIO data input through rosserial is required.
 
 To use this firmware follow these 2 easy steps:
 1.  Clone this repository in your Arduino folder.
@@ -13,6 +13,7 @@ To use this firmware follow these 2 easy steps:
 This firmware contains Implementations of
 
 Control: SE(3) | Status: Complete<br/>
+Control: SO(3) | Status: Complete<br/>
 Estimator: UKF | Status: Complete<br/>
 Estimator: sq-UKF | Status: Incomplete<br/>
 
