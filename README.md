@@ -5,6 +5,8 @@ Made for and tested on Teensy 4.0
 To use this firmware follow these 2 easy steps:
 1.  Clone this repository in your Arduino folder.
 2.  Clone the libraries from https://github.com/animeshshastry/quadx_firmware_libraries and place the library sub-folders in your Arduino/libraries.
+3.  Open and compile the main file "quadx_firmware.ino"
+4.  Upload this to teensy.
 
 This firmware contains Implementations of
 
