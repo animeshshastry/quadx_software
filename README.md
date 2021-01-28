@@ -23,5 +23,8 @@ Secondary Goal 1: Nonlinear control testing | Status: In Progress<br/>
 Secondary Goal 2: Dyanmical Estimation testing | Status: In Progress<br/>
 Secondary Goal 3: Localization indoors using VIO | Status: Complete<br/>
 
+For mathematical details and derivations, read the following paper:<br/>
+A. Shastry and D. A. Paley, "UAV State and Parameter Estimation in Wind Using Calibration Trajectories Optimized for Observability," in IEEE Control Systems Letters, vol. 5, no. 5, pp. 1801-1806, Nov. 2021, doi: [10.1109/LCSYS.2020.3044491](https://doi.org/10.1109/LCSYS.2020.3044491).
+
 #### Acknowledgements:
 The capabilities/functionalities of this firmware was built upon https://github.com/nickrehm/dRehmFlight
