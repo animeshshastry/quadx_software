@@ -5,6 +5,8 @@
 
 //========================================================================================================================//
 
+#include "VehicleParameters.h"
+
 //This file contains all necessary functions and code used for radio communication to avoid cluttering the main code
 unsigned long channel_1_pwm, channel_2_pwm, channel_3_pwm, channel_4_pwm, channel_5_pwm, channel_6_pwm, channel_7_pwm, channel_8_pwm;
 unsigned long channel_1_pwm_prev, channel_2_pwm_prev, channel_3_pwm_prev, channel_4_pwm_prev;
@@ -14,14 +16,14 @@ int ppm_counter = 0;
 unsigned long time_ms = 0;
 
 //Radio failsafe values for every channel in the event that bad reciever data is detected. Recommended defaults:
-unsigned long channel_1_fs = 1000; //thro
+unsigned long channel_1_fs = 1500; //thro
 unsigned long channel_2_fs = 1500; //ail
 unsigned long channel_3_fs = 1500; //elev
 unsigned long channel_4_fs = 1500; //rudd
-unsigned long channel_5_fs = 2000; //gear, greater than 1500 = throttle cut
+unsigned long channel_5_fs = 1000; //mode switch
 unsigned long channel_6_fs = 2000; //aux1
 unsigned long channel_7_fs = 2000; //aux1
-unsigned long channel_8_fs = 2000; //aux1
+unsigned long channel_8_fs = 1000; //arming switch
 
 void radioSetup() {
   //PPM Receiver
@@ -38,6 +40,8 @@ void radioSetup() {
   channel_4_pwm = channel_4_fs;
   channel_5_pwm = channel_5_fs;
   channel_6_pwm = channel_6_fs;
+  channel_7_pwm = channel_7_fs;
+  channel_8_pwm = channel_8_fs;
 }
 
 unsigned long getRadioPWM(int ch_num) {
@@ -149,7 +153,7 @@ void getCommands() {
   channel_1_pwm_prev = channel_1_pwm;
   channel_2_pwm_prev = channel_2_pwm;
   channel_3_pwm_prev = channel_3_pwm;
-  channel_4_pwm_prev = channel_4_pwm;
+  channel_4_pwm_prev = channel_4_pwm; 
 }
 
 void failSafe() {
@@ -161,8 +165,8 @@ void failSafe() {
      channel_x_pwm are set to default failsafe values specified in the setup. Comment out this function when troubleshooting
      your radio connection in case any extreme values are triggering this function to overwrite the printed variables.
   */
-  unsigned minVal = 800;
-  unsigned maxVal = 2200;
+  unsigned minVal = 900;
+  unsigned maxVal = 2100;
   int check1 = 0;
   int check2 = 0;
   int check3 = 0;
@@ -204,15 +208,69 @@ void getDesState() {
      (rate mode). yaw_des is scaled to be within max yaw in degrees/sec. Also creates roll_passthru, pitch_passthru, and
      yaw_passthru variables, to be used in commanding motors/servos with direct unstabilized commands in controlMixer().
   */
-  thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
-  roll_des = (channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
-  pitch_des = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
-  yaw_des = (channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
-  //Constrain within normalized bounds
-  thro_des = constrain(thro_des, 0.0, 1.0); //between 0 and 1
-  roll_des = constrain(roll_des, -1.0, 1.0) * maxRoll; //between -maxRoll and +maxRoll
-  pitch_des = constrain(pitch_des, -1.0, 1.0) * maxPitch; //between -maxPitch and +maxPitch
-  yaw_des = constrain(yaw_des, -1.0, 1.0) * maxYaw; //between -maxYaw and +maxYaw
+  
+  //Mode change
+  if (channel_5_pwm > 800 && channel_5_pwm < 1200) mode = 0; //Acro mode
+  else if (channel_5_pwm > 1300 && channel_5_pwm < 1700) mode = 1; //Manual mode
+  else mode = 2; //Velocity hold mode
+
+  //arming
+  if (channel_8_pwm > 1500) arm_motors();
+  else disarm_motors();
+  
+  switch (mode) {
+    case 0: // ACRO MODE
+      v_des.Fill(0.0);
+      v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between 0 and 1
+      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
+      rpy_des(0) += ((channel_2_pwm - 1500.0) / 500.0) * 2 * dt;
+      rpy_des(1) += ((channel_3_pwm - 1500.0) / 500.0) * 2 * dt;
+      rpy_des(2) -= ((channel_4_pwm - 1500.0) / 500.0) * 2 * dt;
+      omega_des(0) = (channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      omega_des(1) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      omega_des(2) = (channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      omega_des(0) = constrain(omega_des(0), -1.0, 1.0) * maxOmega;
+      omega_des(1) = constrain(omega_des(1), -1.0, 1.0) * maxOmega;
+      omega_des(2) = constrain(omega_des(2), -1.0, 1.0) * maxOmega;
+
+      //Constrain within normalized bounds
+      thro_des = constrain(thro_des, 0.0, 1.0); //between 0 and 1
+      R_des.FromEulerAngles(rpy_des(0), rpy_des(1), rpy_des(2));
+      break;
+
+    case 1: // MANUAL MODE
+      v_des.Fill(0.0);
+      v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between 0 and 1
+      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
+      rpy_des(0) = (channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      rpy_des(1) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      rpy_des(2) -= ((channel_4_pwm - 1500.0) / 500.0) * 2 * dt; //between -1 and 1
+      omega_des.Fill(0.0);
+
+      //Constrain within normalized bounds
+      thro_des = constrain(thro_des, 0.0, 1.0); //between 0 and 1
+      rpy_des(0) = constrain(rpy_des(0), -1.0, 1.0) * maxRoll; //between -maxRoll and +maxRoll
+      rpy_des(1) = constrain(rpy_des(1), -1.0, 1.0) * maxPitch; //between -maxPitch and +maxPitch
+      R_des.FromEulerAngles(rpy_des(0), rpy_des(1), rpy_des(2));
+      break;
+
+    case 2: // VELOCITY HOLD
+      v_des(0) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      v_des(1) = -(channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between 0 and 1
+      v_des(0) = constrain(v_des(0), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      v_des(1) = constrain(v_des(1), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
+      rpy_des(0) = 0.0;
+      rpy_des(1) = 0.0;
+      rpy_des(2) = (channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      rpy_des(2) = constrain(rpy_des(2), -1.0, 1.0) * maxYaw; //between -maxYaw and +maxYaw
+      omega_des.Fill(0.0);
+      break;
+  }
 }
 
 void printRadioData(int print_rate) {
@@ -233,20 +291,44 @@ void printRadioData(int print_rate) {
     SERIAL_PORT.print(F(" CH7: "));
     SERIAL_PORT.print(channel_7_pwm);
     SERIAL_PORT.print(F(" CH8: "));
-    SERIAL_PORT.println(channel_8_pwm);
+    SERIAL_PORT.print(channel_8_pwm);
   }
 }
 
 void printDesiredState(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-    SERIAL_PORT.print(F("thro_des: "));
+
+    switch (mode) {
+      case 0:
+        SERIAL_PORT.print(F("Acro mode   ")); break;
+      case 1:
+        SERIAL_PORT.print(F("Manual mode   ")); break;
+      case 2:
+        SERIAL_PORT.print(F("Velocity hold   ")); break;
+    }
+
+    SERIAL_PORT.print(F(" vx_des: "));
+    SERIAL_PORT.print(v_des(0));
+    SERIAL_PORT.print(F(" vy_des: "));
+    SERIAL_PORT.print(v_des(1));
+    SERIAL_PORT.print(F(" vz_des: "));
+    SERIAL_PORT.print(v_des(2));
+
+    SERIAL_PORT.print(F(" thro_des: "));
     SERIAL_PORT.print(thro_des);
     SERIAL_PORT.print(F(" roll_des: "));
-    SERIAL_PORT.print(roll_des);
+    SERIAL_PORT.print(rpy_des(0)*rad2deg);
     SERIAL_PORT.print(F(" pitch_des: "));
-    SERIAL_PORT.print(pitch_des);
+    SERIAL_PORT.print(rpy_des(1)*rad2deg);
     SERIAL_PORT.print(F(" yaw_des: "));
-    SERIAL_PORT.println(yaw_des);
+    SERIAL_PORT.print(rpy_des(2)*rad2deg);
+
+    SERIAL_PORT.print(F(" omegaX_des: "));
+    SERIAL_PORT.print(omega_des(0)*rad2deg);
+    SERIAL_PORT.print(F(" omegaY_des: "));
+    SERIAL_PORT.print(omega_des(1)*rad2deg);
+    SERIAL_PORT.print(F(" omegaZ_des: "));
+    SERIAL_PORT.print(omega_des(2)*rad2deg);
   }
 }

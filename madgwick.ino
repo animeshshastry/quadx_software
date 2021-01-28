@@ -11,6 +11,10 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
   */
   float recipNorm;
   float s0, s1, s2, s3;
+  float q0 = q(0);
+  float q1 = q(1);
+  float q2 = q(2);
+  float q3 = q(3);
   float qDot1, qDot2, qDot3, qDot4;
   float hx, hy;
   float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
@@ -104,10 +108,20 @@ void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float 
   q2 *= recipNorm;
   q3 *= recipNorm;
 
-  //compute angles - NWU
-  roll = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
-  pitch = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
-  yaw = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
+  q(0) = q0;
+  q(1) = q1;
+  q(2) = q2;
+  q(3) = q3;
+
+  //  //compute angles - NWU
+  //  rpy(0) = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
+  //  rpy(1) = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
+  //  rpy(2) = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
+
+  //  //compute angles
+  //  roll = atan2(2 * (q0 * q1 + q2 * q3), 1.0f - 2 * (q1 * q1 + q2 * q2)) * 57.29577951; //degrees
+  //  pitch = asin(2.0f * (q0 * q2 - q3 * q1)) * 57.29577951; //degrees
+  //  yaw = atan2(2 * (q1 * q2 + q0 * q3), 1.0f - 2 * (q2 * q2 + q3 * q3)) * 57.29577951; //degrees
 }
 
 void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, float invSampleFreq) {
@@ -118,6 +132,10 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
   */
   float recipNorm;
   float s0, s1, s2, s3;
+  float q0 = q(0);
+  float q1 = q(1);
+  float q2 = q(2);
+  float q3 = q(3);
   float qDot1, qDot2, qDot3, qDot4;
   float _2q0, _2q1, _2q2, _2q3, _4q0, _4q1, _4q2 , _8q1, _8q2, q0q0, q1q1, q2q2, q3q3;
 
@@ -181,15 +199,20 @@ void Madgwick6DOF(float gx, float gy, float gz, float ax, float ay, float az, fl
   q2 *= recipNorm;
   q3 *= recipNorm;
 
-//  //compute angles
-//  roll = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
-//  pitch = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
-//  yaw = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
+  q(0) = q0;
+  q(1) = q1;
+  q(2) = q2;
+  q(3) = q3;
 
-//  //compute angles
-//  roll = atan2(2 * (q0 * q1 + q2 * q3), 1.0f - 2 * (q1 * q1 + q2 * q2)) * 57.29577951; //degrees
-//  pitch = asin(2.0f * (q0 * q2 - q3 * q1)) * 57.29577951; //degrees
-//  yaw = atan2(2 * (q1 * q2 + q0 * q3), 1.0f - 2 * (q2 * q2 + q3 * q3)) * 57.29577951; //degrees
+  //  //compute angles
+  //  roll = atan2(q0 * q1 + q2 * q3, 0.5f - q1 * q1 - q2 * q2) * 57.29577951; //degrees
+  //  pitch = -asin(-2.0f * (q1 * q3 - q0 * q2)) * 57.29577951; //degrees
+  //  yaw = -atan2(q1 * q2 + q0 * q3, 0.5f - q2 * q2 - q3 * q3) * 57.29577951; //degrees
+
+  //  //compute angles
+  //  roll = atan2(2 * (q0 * q1 + q2 * q3), 1.0f - 2 * (q1 * q1 + q2 * q2)) * 57.29577951; //degrees
+  //  pitch = asin(2.0f * (q0 * q2 - q3 * q1)) * 57.29577951; //degrees
+  //  yaw = atan2(2 * (q1 * q2 + q0 * q3), 1.0f - 2 * (q2 * q2 + q3 * q3)) * 57.29577951; //degrees
 }
 
 float invSqrt(float x) {
@@ -215,11 +238,11 @@ void printMadgwickRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
     SERIAL_PORT.print(F("roll: "));
-    SERIAL_PORT.print(roll);
+    SERIAL_PORT.print(rpy(0)*rad2deg);
     SERIAL_PORT.print(F(" pitch: "));
-    SERIAL_PORT.print(pitch);
+    SERIAL_PORT.print(rpy(1)*rad2deg);
     SERIAL_PORT.print(F(" yaw: "));
-    SERIAL_PORT.println(yaw);
+    SERIAL_PORT.print(rpy(2)*rad2deg);
   }
 }
 void printVisualizationYawPitchRoll(int print_rate) {
@@ -227,25 +250,25 @@ void printVisualizationYawPitchRoll(int print_rate) {
     print_counter = micros();
     SERIAL_PORT.print("Orientation: ");
     //    SERIAL_PORT.print(F(" yaw: "));
-    SERIAL_PORT.print(rad2deg*yaw);
+    SERIAL_PORT.print(rad2deg * rpy(2));
     //    SERIAL_PORT.print(F(" pitch: "));
     SERIAL_PORT.print(" ");
-    SERIAL_PORT.print(rad2deg*pitch);
+    SERIAL_PORT.print(rad2deg * rpy(1));
     //    SERIAL_PORT.print(F("roll: "));
     SERIAL_PORT.print(" ");
-    SERIAL_PORT.println(rad2deg*roll);
+    SERIAL_PORT.print(rad2deg * rpy(0));
   }
 }
 void printMadgwickQuaternions(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-    SERIAL_PORT.print(F("q0: "));
-    SERIAL_PORT.print(q0);
-    SERIAL_PORT.print(F(" q1: "));
-    SERIAL_PORT.print(q1);
-    SERIAL_PORT.print(F(" q2: "));
-    SERIAL_PORT.print(q2);
-    SERIAL_PORT.print(F(" q3: "));
-    SERIAL_PORT.println(q3);
+    SERIAL_PORT.print(F("q(0): "));
+    SERIAL_PORT.print(q(0));
+    SERIAL_PORT.print(F(" q(1): "));
+    SERIAL_PORT.print(q(1));
+    SERIAL_PORT.print(F(" q(2): "));
+    SERIAL_PORT.print(q(2));
+    SERIAL_PORT.print(F(" q(3): "));
+    SERIAL_PORT.print(q(3));
   }
 }

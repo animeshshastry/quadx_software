@@ -1,16 +1,16 @@
 void imuSetup() {
   //Start IMU
   WIRE_PORT.begin();
-  //WIRE_PORT.setClock(400000);
-  WIRE_PORT.setClock(1000000);
+  WIRE_PORT.setClock(400000);
+//  WIRE_PORT.setClock(1000000);
   bool initialized = false;
   while ( !initialized ) {
     IMU.begin( WIRE_PORT, 1 );
 
-    SERIAL_PORT.print( F("Initialization of the sensor returned: ") );
-    SERIAL_PORT.println( IMU.statusString() );
+//    SERIAL_PORT.print( F("Initialization of the sensor returned: ") );
+//    SERIAL_PORT.println( IMU.statusString() );
     if ( IMU.status != ICM_20948_Stat_Ok ) {
-      SERIAL_PORT.println( "Trying again..." );
+//      SERIAL_PORT.println( "Trying again..." );
       delay(500);
     } else {
       initialized = true;
@@ -18,13 +18,13 @@ void imuSetup() {
   }
 
   // In this advanced example we'll cover how to do a more fine-grained setup of your sensor
-  SERIAL_PORT.println("Device connected!");
+//  SERIAL_PORT.println("Device connected!");
 
   // Here we are doing a SW reset to make sure the device starts in a known state
   IMU.swReset( );
   if ( IMU.status != ICM_20948_Stat_Ok) {
-    SERIAL_PORT.print(F("Software Reset returned: "));
-    SERIAL_PORT.println(IMU.statusString());
+//    SERIAL_PORT.print(F("Software Reset returned: "));
+//    SERIAL_PORT.println(IMU.statusString());
   }
   delay(250);
 
@@ -39,8 +39,8 @@ void imuSetup() {
   //          ICM_20948_Sample_Mode_Cycled
   IMU.setSampleMode( (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), ICM_20948_Sample_Mode_Continuous );
   if ( IMU.status != ICM_20948_Stat_Ok) {
-    SERIAL_PORT.print(F("setSampleMode returned: "));
-    SERIAL_PORT.println(IMU.statusString());
+//    SERIAL_PORT.print(F("setSampleMode returned: "));
+//    SERIAL_PORT.println(IMU.statusString());
   }
 
   // Set full scale ranges for both acc and gyr
@@ -60,8 +60,8 @@ void imuSetup() {
 
   IMU.setFullScale( (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), myFSS );
   if ( IMU.status != ICM_20948_Stat_Ok) {
-    SERIAL_PORT.print(F("setFullScale returned: "));
-    SERIAL_PORT.println(IMU.statusString());
+//    SERIAL_PORT.print(F("setFullScale returned: "));
+//    SERIAL_PORT.println(IMU.statusString());
   }
 
 
@@ -88,19 +88,19 @@ void imuSetup() {
 
   IMU.setDLPFcfg( (ICM_20948_Internal_Acc | ICM_20948_Internal_Gyr), myDLPcfg );
   if ( IMU.status != ICM_20948_Stat_Ok) {
-    SERIAL_PORT.print(F("setDLPcfg returned: "));
-    SERIAL_PORT.println(IMU.statusString());
+//    SERIAL_PORT.print(F("setDLPcfg returned: "));
+//    SERIAL_PORT.println(IMU.statusString());
   }
 
   // Choose whether or not to use DLPF
   // Here we're also showing another way to access the status values, and that it is OK to supply individual sensor masks to these functions
   ICM_20948_Status_e accDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Acc, false );
   ICM_20948_Status_e gyrDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Gyr, false );
-  SERIAL_PORT.print(F("Enable DLPF for Accelerometer returned: ")); SERIAL_PORT.println(IMU.statusString(accDLPEnableStat));
-  SERIAL_PORT.print(F("Enable DLPF for Gyroscope returned: ")); SERIAL_PORT.println(IMU.statusString(gyrDLPEnableStat));
+//  SERIAL_PORT.print(F("Enable DLPF for Accelerometer returned: ")); SERIAL_PORT.println(IMU.statusString(accDLPEnableStat));
+//  SERIAL_PORT.print(F("Enable DLPF for Gyroscope returned: ")); SERIAL_PORT.println(IMU.statusString(gyrDLPEnableStat));
 
-  SERIAL_PORT.println();
-  SERIAL_PORT.println(F("Configuration complete!"));
+//  SERIAL_PORT.println();
+//  SERIAL_PORT.println(F("Configuration complete!"));
 }
 
 void getIMUdata() {
@@ -108,57 +108,66 @@ void getIMUdata() {
     IMU.getAGMT();                // The values are only updated when you call 'getAGMT'
 
     //Accelerometer
-    AccX = IMU.accX() / ACCEL_SCALE_FACTOR; //G's
-    AccY = IMU.accY() / ACCEL_SCALE_FACTOR;
-    AccZ = IMU.accZ() / ACCEL_SCALE_FACTOR;
+    Acc.X() = IMU.accX() / ACCEL_SCALE_FACTOR; //G's
+    Acc.Y() = IMU.accY() / ACCEL_SCALE_FACTOR;
+    Acc.Z() = IMU.accZ() / ACCEL_SCALE_FACTOR;
     //Correct the outputs with the calculated error values
-    AccX = AccX - AccErrorX;
-    AccY = AccY - AccErrorY;
-    AccZ = AccZ - AccErrorZ;
+    Acc.X() = Acc.X() - AccBias.X();
+    Acc.Y() = Acc.Y() - AccBias.Y();
+    Acc.Z() = Acc.Z() - AccBias.Z();
 
     //Gyro
-    GyroX = IMU.gyrX() * deg2rad; //rad/sec
-    GyroY = IMU.gyrY() * deg2rad;
-    GyroZ = IMU.gyrZ() * deg2rad;
+    Gyro.X() = IMU.gyrX() * deg2rad; //rad/sec
+    Gyro.Y() = IMU.gyrY() * deg2rad;
+    Gyro.Z() = IMU.gyrZ() * deg2rad;
     //Correct the outputs with the calculated error values
-    GyroX = GyroX - GyroErrorX;
-    GyroY = GyroY - GyroErrorY;
-    GyroZ = GyroZ - GyroErrorZ;
+    Gyro.X() = Gyro.X() - GyroBias.X();
+    Gyro.Y() = Gyro.Y() - GyroBias.Y();
+    Gyro.Z() = Gyro.Z() - GyroBias.Z();
 
     //Magnetometer
-    MagX = IMU.magX() / 6.0; //uT
-    MagY = IMU.magY() / 6.0;
-    MagZ = IMU.magZ() / 6.0;
+    Mag.X() = IMU.magX() / 6.0; //uT
+    Mag.Y() = IMU.magY() / 6.0;
+    Mag.Z() = IMU.magZ() / 6.0;
     //Correct the outputs with the calculated error values
-    MagX = (MagX - MagErrorX) * MagScaleX;
-    MagY = (MagY - MagErrorY) * MagScaleY;
-    MagZ = (MagZ - MagErrorZ) * MagScaleZ;
+    Mag.X() = (Mag.X() - MagErr.X()) * MagScale.X();
+    Mag.Y() = (Mag.Y() - MagErr.Y()) * MagScale.Y();
+    Mag.Z() = (Mag.Z() - MagErr.Z()) * MagScale.Z();
   }
 }
 
-void printAccelData(int print_rate) {
+void printAccMagnitude(int print_rate) {
+  if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
+    print_counter = micros();
+#define acc_plot_scaling 1.0
+    SERIAL_PORT.print(F(" |acc|: "));
+    SERIAL_PORT.print(Acc.Magnitude());
+  }
+}
+
+void printAccData(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
 #define acc_plot_scaling 1.0
     SERIAL_PORT.print(F(" accX: "));
-    SERIAL_PORT.print(acc_plot_scaling * AccX);
-    SERIAL_PORT.print(F(" accX: "));
-    SERIAL_PORT.print(acc_plot_scaling * AccY);
+    SERIAL_PORT.print(acc_plot_scaling * Acc.X());
+    SERIAL_PORT.print(F(" accY: "));
+    SERIAL_PORT.print(acc_plot_scaling * Acc.Y());
     SERIAL_PORT.print(F(" accZ: "));
-    SERIAL_PORT.println(acc_plot_scaling * AccZ);
+    SERIAL_PORT.print(acc_plot_scaling * Acc.Z());
   }
 }
 
 void printGyroData(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-#define gyro_plot_scaling 1.0
+#define gyro_plot_scaling rad2deg
     SERIAL_PORT.print(F(" gyroX: "));
-    SERIAL_PORT.print(gyro_plot_scaling * GyroX);
+    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
     SERIAL_PORT.print(F(" gyroY: "));
-    SERIAL_PORT.print(gyro_plot_scaling * GyroY);
+    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Y());
     SERIAL_PORT.print(F(" gyroZ: "));
-    SERIAL_PORT.println(gyro_plot_scaling * GyroZ);
+    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Z());
   }
 }
 
@@ -167,11 +176,11 @@ void printMagData(int print_rate) {
     print_counter = micros();
 #define mag_plot_scaling 1000000.0
     SERIAL_PORT.print(F(" magX: "));
-    SERIAL_PORT.print(mag_plot_scaling * MagX);
+    SERIAL_PORT.print(mag_plot_scaling * Mag.X());
     SERIAL_PORT.print(F(" magY: "));
-    SERIAL_PORT.print(mag_plot_scaling * MagY);
+    SERIAL_PORT.print(mag_plot_scaling * Mag.Y());
     SERIAL_PORT.print(F(" magZ: "));
-    SERIAL_PORT.println(mag_plot_scaling * MagZ);
+    SERIAL_PORT.print(mag_plot_scaling * Mag.Z());
   }
 }
 
@@ -185,17 +194,17 @@ void printIMUdata(int print_rate) {
 #define gyro_plot_scaling 100.0
 
     SERIAL_PORT.print(F(" accX: "));
-    SERIAL_PORT.print(acc_plot_scaling * AccX);
+    SERIAL_PORT.print(acc_plot_scaling * Acc.X());
     SERIAL_PORT.print(F(" accX: "));
-    SERIAL_PORT.print(acc_plot_scaling * AccY);
+    SERIAL_PORT.print(acc_plot_scaling * Acc.Y());
     SERIAL_PORT.print(F(" accZ: "));
-    SERIAL_PORT.print(acc_plot_scaling * AccZ);
+    SERIAL_PORT.print(acc_plot_scaling * Acc.Z());
 //    SERIAL_PORT.print(F(" gyroX: "));
-//    SERIAL_PORT.print(gyro_plot_scaling * GyroX);
+//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
 //    SERIAL_PORT.print(F(" gyroY: "));
-//    SERIAL_PORT.print(gyro_plot_scaling * GyroY);
+//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Y());
 //    SERIAL_PORT.print(F(" gyroZ: "));
-//    SERIAL_PORT.println(gyro_plot_scaling * GyroZ);
+//    SERIAL_PORT.println(gyro_plot_scaling * Gyro.Z());
 
     SERIAL_PORT.print(F(" raw accX: "));
     SERIAL_PORT.print(acc_plot_scaling * IMU.agmt.acc.axes.x / 16384.0);
