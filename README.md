@@ -22,3 +22,6 @@ Primary Goal 2: Demonstration of unsteady wind rejection | Status: Not started<b
 Secondary Goal 1: Nonlinear control testing | Status: In Progress<br/>
 Secondary Goal 2: Dyanmical Estimation testing | Status: In Progress<br/>
 Secondary Goal 3: Localization indoors using VIO | Status: Complete<br/>
+
+#### Acknowledgements:
+The capabilities/functionalities of this firmware was built upon https://github.com/nickrehm/dRehmFlight
