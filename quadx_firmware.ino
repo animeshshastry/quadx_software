@@ -197,7 +197,8 @@ void loop() {
   //      printUKFAccEst(100);
   //    printUKFGyroEst(100);
 //  printControlOutput(100);
-  printMotorOutput(100);
+//  printMotorOutput(100);
+  printMotorCmdOutput(100);
 //      printLoopRate(10);
   SERIAL_PORT.println();
 #else

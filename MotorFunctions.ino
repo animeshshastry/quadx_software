@@ -107,3 +107,17 @@ void printMotorOutput(int print_rate) {
     SERIAL_PORT.print(Motor_Speed(3)*print_scale);
   }
 }
+
+void printMotorCmdOutput(int print_rate) {
+  if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
+    print_counter = micros();
+    SERIAL_PORT.print(F(" m0: "));
+    SERIAL_PORT.print(cmd[0]);
+    SERIAL_PORT.print(F(" m1: "));
+    SERIAL_PORT.print(cmd[1]);
+    SERIAL_PORT.print(F(" m2: "));
+    SERIAL_PORT.print(cmd[3]);
+    SERIAL_PORT.print(F(" m3: "));
+    SERIAL_PORT.print(cmd[5]);
+  }
+}

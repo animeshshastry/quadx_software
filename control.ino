@@ -25,7 +25,7 @@ void controlOmega() {
   Point Iw = Inertia * omega;
   Point cross_term = omega.CrossProduct(Iw);
   Point omega_transf_term = Inertia * (hat(omega) * omega_des);
-  Torque = Inertia * (- omega_err * K_omega) + cross_term - omega_transf_term + Torque_Aero;
+  Torque = (Inertia * (- omega_err * K_omega) + cross_term - omega_transf_term + Torque_Aero)*0.0;
 
   //  Serial << "Torque: " << Torque << '\n';
 }
