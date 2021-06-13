@@ -32,8 +32,8 @@ void UKFSetup() {
 
   const double dt = 1.0 / loop_freq;
 
-  D(0, 0) = 1e-3; //s1
-  D(1, 1) = 1e-3; //s2
+  D(0, 0) = 1e-4; //s1
+  D(1, 1) = 1e-4; //s2
   D(2, 2) = .3; //w1
   D(3, 3) = .3; //w2
   D(4, 4) = .3; //w3
@@ -45,7 +45,7 @@ void UKFSetup() {
   N(3, 3) = gyro_noise; //gyrox
   N(4, 4) = gyro_noise; //gyroy
   N(5, 5) = gyro_noise; //gyroz
-  //  N = N*N;
+  N = N*N;
 
   x(0) = 0.0; //s1
   x(1) = 0.0; //s2
@@ -103,6 +103,14 @@ void UKFUpdate() {
   omega(0) = x(2);
   omega(1) = x(3);
   omega(2) = x(4);
+
+  if (((~(meas - y)) * (meas - y))(0, 0) > CRASH_THRES && current_time * micros2secs > 3 && !disarmed) {
+    crashed = true;
+//    Serial << " DELTA_Y: " << ((~(meas - y)) * (meas - y))(0, 0);
+    //    Serial.println(current_time);
+  }
+//  Serial << " DELTA_Y: " << ((~(meas - y)) * (meas - y))(0, 0);
+      
   //  Serial << "x: " << x << '\n';
 }
 
@@ -287,12 +295,12 @@ void GenerateStateSigmaPts() {
 void printUKFRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-    SERIAL_PORT.print(F(" UKF_roll: "));
-    SERIAL_PORT.print(rpy_UKF(0)*rad2deg);
+//    SERIAL_PORT.print(F(" UKF_roll: "));
+//    SERIAL_PORT.print(rpy_UKF(0)*rad2deg);
     SERIAL_PORT.print(F(" UKF_pitch: "));
     SERIAL_PORT.print(rpy_UKF(1)*rad2deg);
-    SERIAL_PORT.print(F(" UKF_yaw: "));
-    SERIAL_PORT.print(rpy_UKF(2)*rad2deg);
+//    SERIAL_PORT.print(F(" UKF_yaw: "));
+//    SERIAL_PORT.print(rpy_UKF(2)*rad2deg);
   }
 }
 
@@ -335,10 +343,10 @@ void printUKFGyroEst(int print_rate) {
     print_counter = micros();
     SERIAL_PORT.print(F(" UKF_gyrox : "));
     SERIAL_PORT.print(y(3)*rad2deg);
-    SERIAL_PORT.print(F(" UKF_gyroy: "));
-    SERIAL_PORT.print(y(4)*rad2deg);
-    SERIAL_PORT.print(F(" UKF_gyroz: "));
-    SERIAL_PORT.print(y(5)*rad2deg);
+//    SERIAL_PORT.print(F(" UKF_gyroy: "));
+//    SERIAL_PORT.print(y(4)*rad2deg);
+//    SERIAL_PORT.print(F(" UKF_gyroz: "));
+//    SERIAL_PORT.print(y(5)*rad2deg);
   }
 }
 

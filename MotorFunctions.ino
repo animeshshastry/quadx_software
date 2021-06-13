@@ -24,10 +24,15 @@ void init_MixerX() {
             X
     (CW)  1   2 (CCW)
   */
-  Matrix<4, 4> A_f = { k_f,      k_f,      k_f,      k_f,
-                       Ly * k_f,   Ly * k_f,   -Ly * k_f,  -Ly * k_f,
-                       -Lx * k_f,  Lx * k_f,   Lx * k_f,   -Lx * k_f,
-                       -k_m,     k_m,      -k_m,     k_m
+//  Matrix<4, 4> A_f = { k_f,      k_f,      k_f,      k_f,
+//                       Ly * k_f,   Ly * k_f,   -Ly * k_f,  -Ly * k_f,
+//                       -Lx * k_f,  Lx * k_f,   Lx * k_f,   -Lx * k_f,
+//                       -k_m,     k_m,      -k_m,     k_m
+//                     };
+  Matrix<4, 4> A_f = { 1,   1,    1,    1,
+                       Ly,  Ly,   -Ly,  -Ly,
+                       -Lx, Lx,   Lx,   -Lx,
+                       kmf, -kmf, kmf,  -kmf
                      };
   MIX_INV = A_f.Inverse();
 }
@@ -40,23 +45,28 @@ void Mixer() {
   //  Motor_Speed(3) = (0.25 * T) / k_f + (0.25 * M[3]) / k_m - (0.25 * M[1]) / (L * k_f) - (0.25 * M[2]) / (L * k_f);
 
   Matrix<4, 1> U = {Thrust, Torque(0), Torque(1), Torque(2)};
-  Motor_Speed = MIX_INV * U;
-
-  Motor_Speed(0) = constrain(Motor_Speed(0), 0.0f, 1.0f);
-  Motor_Speed(1) = constrain(Motor_Speed(1), 0.0f, 1.0f);
-  Motor_Speed(2) = constrain(Motor_Speed(2), 0.0f, 1.0f);
-  Motor_Speed(3) = constrain(Motor_Speed(3), 0.0f, 1.0f);
+//  Motor_Speed = MIX_INV * U;
+  Motor_Thrust = MIX_INV * U;
+  
+//  Motor_Speed(0) = constrain(Motor_Speed(0), 0.0f, 1.0f);
+//  Motor_Speed(1) = constrain(Motor_Speed(1), 0.0f, 1.0f);
+//  Motor_Speed(2) = constrain(Motor_Speed(2), 0.0f, 1.0f);
+//  Motor_Speed(3) = constrain(Motor_Speed(3), 0.0f, 1.0f);
 }
 
 void send_motor_cmds() {
-  // DSHOT cmds
-  cmd[0] = Motor_Speed(0) * 1999 + 48;
-  cmd[1] = Motor_Speed(1) * 1999 + 48;
-  cmd[3] = Motor_Speed(2) * 1999 + 48;
-  cmd[5] = Motor_Speed(3) * 1999 + 48;
-
   if (!disarmed)
   {
+      // DSHOT cmds
+  //  cmd[0] = Motor_Speed(0) * 1999 + 48;
+  //  cmd[1] = Motor_Speed(1) * 1999 + 48;
+  //  cmd[3] = Motor_Speed(2) * 1999 + 48;
+  //  cmd[5] = Motor_Speed(3) * 1999 + 48;
+    cmd[0] = Motor_Thrust(0) * MTS + MTC;
+    cmd[1] = Motor_Thrust(1) * MTS + MTC;
+    cmd[3] = Motor_Thrust(2) * MTS + MTC;
+    cmd[5] = Motor_Thrust(3) * MTS + MTC;
+  
     DSHOT_send( cmd, tlm );
     delayMicroseconds(200);
     // ESC disarms if nothing is received within 1.5ms, send zero throttle(or 48) to arm again
@@ -71,7 +81,7 @@ void arm_motors() {
     cmd[3] = 48;
     cmd[4] = 48;
     cmd[5] = 48;
-    for (int i = 0; i < 500; i++) {
+    for (int i = 0; i < 1000; i++) {
       DSHOT_send( cmd, tlm );
       delayMicroseconds(DSHOT_DELAY);
     }

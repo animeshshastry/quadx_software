@@ -76,7 +76,7 @@ void imuSetup() {
   // acc_d5bw7_n8bw3        - means 3 db bandwidth is 5.7 hz and nyquist bandwidth is 8.3 hz
   // acc_d473bw_n499bw
 
-  myDLPcfg.g = gyr_d361bw4_n376bw5;       // (ICM_20948_GYRO_CONFIG_1_DLPCFG_e)
+  myDLPcfg.g = gyr_d5bw7_n8bw9;       // (ICM_20948_GYRO_CONFIG_1_DLPCFG_e)
   // gyr_d196bw6_n229bw8
   // gyr_d151bw8_n187bw6
   // gyr_d119bw5_n154bw3
@@ -94,8 +94,8 @@ void imuSetup() {
 
   // Choose whether or not to use DLPF
   // Here we're also showing another way to access the status values, and that it is OK to supply individual sensor masks to these functions
-  ICM_20948_Status_e accDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Acc, false );
-  ICM_20948_Status_e gyrDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Gyr, false );
+  ICM_20948_Status_e accDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Acc, true );
+  ICM_20948_Status_e gyrDLPEnableStat = IMU.enableDLPF( ICM_20948_Internal_Gyr, true );
 //  SERIAL_PORT.print(F("Enable DLPF for Accelerometer returned: ")); SERIAL_PORT.println(IMU.statusString(accDLPEnableStat));
 //  SERIAL_PORT.print(F("Enable DLPF for Gyroscope returned: ")); SERIAL_PORT.println(IMU.statusString(gyrDLPEnableStat));
 
@@ -148,13 +148,13 @@ void printAccMagnitude(int print_rate) {
 void printAccData(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-#define acc_plot_scaling 1.0
+#define acc_plot_scaling 100.0
     SERIAL_PORT.print(F(" accX: "));
     SERIAL_PORT.print(acc_plot_scaling * Acc.X());
     SERIAL_PORT.print(F(" accY: "));
     SERIAL_PORT.print(acc_plot_scaling * Acc.Y());
     SERIAL_PORT.print(F(" accZ: "));
-    SERIAL_PORT.print(acc_plot_scaling * Acc.Z());
+    SERIAL_PORT.print(acc_plot_scaling * (Acc.Z()-9.81));
   }
 }
 
@@ -162,12 +162,12 @@ void printGyroData(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
 #define gyro_plot_scaling rad2deg
-    SERIAL_PORT.print(F(" gyroX: "));
-    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
+//    SERIAL_PORT.print(F(" gyroX: "));
+//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
     SERIAL_PORT.print(F(" gyroY: "));
     SERIAL_PORT.print(gyro_plot_scaling * Gyro.Y());
-    SERIAL_PORT.print(F(" gyroZ: "));
-    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Z());
+//    SERIAL_PORT.print(F(" gyroZ: "));
+//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Z());
   }
 }
 

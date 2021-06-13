@@ -5,7 +5,7 @@
 Point Force_Aero, Torque_Aero;
 Point Rx, Ry, Rz, xb, yb, zb, xc;
 Matrix<3, 3> R_des_T, R_T;
-Matrix<3, 1> R_err, omega_err;
+Matrix<3, 1> R_err, omega_err, R_err_int, pos_err_int;
 
 void controlSetup() {
 }
@@ -15,18 +15,19 @@ void controlOmega() {
   Force_Aero = Aerodynamics(body_vel);
   Torque_Aero = rCP.CrossProduct(Force_Aero);
 
-//  Point u = (v_des - body_vel) * K_v + gravity + Force_Aero * (1.0 / mass);
-//  Thrust = mass * u(2);
-  Thrust = 4 * mass * thro_des * gravity(2);
+  //  Point u = (v_des - body_vel) * K_v + gravity + Force_Aero * (1.0 / mass);
+  //  Thrust = mass * u(2);
+  Thrust = 4 * mass * (thro_des-0.25) * gravity(2);
 
   omega_err = omega - omega_des;
-//    Serial << "omega_err: " << omega_err << '\n';
+  //    Serial << "omega_err: " << omega_err << '\n';
 
   Point Iw = Inertia * omega;
   Point cross_term = omega.CrossProduct(Iw);
   Point omega_transf_term = Inertia * (hat(omega) * omega_des);
-  Torque = (Inertia * (- omega_err * K_omega) + cross_term - omega_transf_term + Torque_Aero)*0.0;
-
+  Torque = (Inertia * (- omega_err * K_omega) + cross_term - omega_transf_term + Torque_Aero);
+  Torque(2) = yaw_ctrl_scale*Torque(2);
+  
   //  Serial << "Torque: " << Torque << '\n';
 }
 
@@ -38,7 +39,8 @@ void controlSO3() {
 
   Rz = R.Submatrix(Slice<0, 3>(), Slice<2, 3>());
   Thrust = mass * (Rz.DotProduct(u));
-
+//  Thrust = 1 * mass * thro_des * gravity(2);
+  
   R_des_T = ~R_des;
   R_T = ~R;
   R_err = vee(R_des_T * R - R_T * R_des) * 0.5f;
@@ -49,8 +51,14 @@ void controlSO3() {
   Point Iw = Inertia * omega;
   Point cross_term = omega.CrossProduct(Iw);
   Point omega_transf_term = Inertia * (hat(omega) * R_T * R_des * omega_des);
-  Torque = Inertia * (-R_err * K_R - omega_err * K_omega) + cross_term - omega_transf_term + Torque_Aero;
+  Torque = Inertia * (-R_err * K_R - omega_err * K_omega - R_err_int * K_RI) + cross_term - omega_transf_term + Torque_Aero;
+  Torque(2) = yaw_ctrl_scale*Torque(2);
 
+  R_err_int += R_err * dt;
+  R_err_int(0) = constrain(R_err_int(0), -.1, .1);
+  R_err_int(1) = constrain(R_err_int(1), -.1, .1);
+  R_err_int(2) = constrain(R_err_int(2), -.1, .1);
+//  Serial << "R_err_int: " << R_err_int * K_RI << '\n';
   //  Serial << "Torque: " << Torque << '\n';
 }
 

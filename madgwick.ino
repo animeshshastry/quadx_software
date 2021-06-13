@@ -1,4 +1,5 @@
-float B_madgwick = 0.1;  //Madgwick filter parameter
+float B_madgwick = 0.02;  //Madgwick filter parameter
+//float B_madgwick = 0.02*loop_freq/100.0;  //Madgwick filter parameter
 
 void Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz, float invSampleFreq) {
   //DESCRIPTION: Attitude estimation through sensor fusion - 9DOF
@@ -237,12 +238,12 @@ float invSqrt(float x) {
 void printMadgwickRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-    SERIAL_PORT.print(F("roll: "));
-    SERIAL_PORT.print(rpy(0)*rad2deg);
+//    SERIAL_PORT.print(F("roll: "));
+//    SERIAL_PORT.print(rpy(0)*rad2deg);
     SERIAL_PORT.print(F(" pitch: "));
     SERIAL_PORT.print(rpy(1)*rad2deg);
-    SERIAL_PORT.print(F(" yaw: "));
-    SERIAL_PORT.print(rpy(2)*rad2deg);
+//    SERIAL_PORT.print(F(" yaw: "));
+//    SERIAL_PORT.print(rpy(2)*rad2deg);
   }
 }
 void printVisualizationYawPitchRoll(int print_rate) {

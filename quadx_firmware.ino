@@ -27,6 +27,7 @@ Point Mag, MagErr, MagScale;
 
 //Radio Variables
 unsigned int mode = 1;
+float rc_knob = 1.0;
 
 //Reference states:
 float thro_des;
@@ -45,6 +46,7 @@ Point body_vel, VIO_pos, VIO_vel;
 Matrix<3, 3> Inertia;
 float Thrust;
 Point Torque;
+Matrix<4, 1> Motor_Thrust;
 Matrix<4, 1> Motor_Speed;
 Matrix<4, 1> Motor_Signal;
 Point CD, rCP, rIMU;
@@ -60,10 +62,12 @@ bool blinkAlternate;
 void gv_init() {
   Acc.Fill(0.0);
   Gyro.Fill(0.0);
-  AccBias.X() = -0.25;
-  AccBias.Y() = 0.15;
+  AccBias.X() = -0.21;
+  AccBias.Y() = 0.09;
   AccBias.Z() = 0.0;
-  GyroBias.Fill(0.0);
+  GyroBias.X() = 0.55*deg2rad;
+  GyroBias.Y() = 0.52*deg2rad;
+  GyroBias.Z() = 0.55*deg2rad;
   Mag.Fill(0.0);
   MagErr.Fill(0.0);
   MagScale.Fill(1.0);
@@ -79,6 +83,7 @@ void gv_init() {
   omega_des.Fill(0.0);
   Thrust = 0.0;
   Torque.Fill(0.0);
+  Motor_Thrust.Fill(0.0);
   Motor_Speed.Fill(0.0);
   Motor_Signal.Fill(0.0);
   gravity.Fill(0.0);
@@ -116,7 +121,7 @@ void setup() {
 
   delay(10);
   //Initialize ICM20948 IMU
-//  imuSetup();
+  imuSetup();
 
   //Initialize radio communication
   radioSetup();
@@ -147,18 +152,23 @@ void loop() {
   getDesState(); //convert raw commands to normalized values based on saturated control limits
 
   //Get IMU Data
-//  getIMUdata();
+  getIMUdata();
 
   //Madgwick Sensor Fusion
   //Madgwick(GyroX, GyroY, GyroZ, AccX, AccY, AccZ, MagY, MagX, MagZ, dt); //updates roll_IMU, pitch_IMU, and yaw_IMU (degrees)
   Madgwick6DOF(Gyro.X(), Gyro.Y(), Gyro.Z(), Acc.X(), Acc.Y(), Acc.Z(), dt);
   R.FromQuaternions(q(0), q(1), q(2), q(3));
   rpy = EulerAnglesFrom(R);
-
+  omega = Gyro;
+  
   UKFPropagate();
   UKFUpdate();
   R.FromStereo(StereoAtt, rpy(2));
   rpy_UKF = EulerAnglesFrom(R);
+
+  if ( !disarmed && (rpy_UKF(0) > unsafeOrient || rpy_UKF(0) < -unsafeOrient || rpy_UKF(1) > unsafeOrient || rpy_UKF(1) < -unsafeOrient)) {
+    crashed = true;
+  }
 
   //Control
   switch (mode) {
@@ -178,27 +188,27 @@ void loop() {
 
 #if (!ROS_COMM)
   // These are all for debugging purposes only
-//      printRadioData(100);
+      printRadioData(100);
 //    printDesiredState(100);
-  //  printGyroData(100);
-  //    printAccData(100);
+//    printGyroData(100);
+//      printAccData(100);
   //  printMagData(100);
   //  printAccMagnitude(100);
-  //printIMUdata(100);
+//  printIMUdata(100);
   //printVIOVelocity(100);
-  //      printMadgwickRollPitchYaw(100);
+//        printMadgwickRollPitchYaw(100);
   //  printVisualizationYawPitchRoll(100);
   //  printMadgwickQuaternions(100);
   //  printUKFStereo(100);
-  //    printUKFRollPitchYaw(100);
+//      printUKFRollPitchYaw(100);
   //printUKFVelocity(100);
-  //  printUKFOmega(100);
-  //    printTrace(100);
-  //      printUKFAccEst(100);
-  //    printUKFGyroEst(100);
+//    printUKFOmega(100);
+//      printTrace(100);
+//        printUKFAccEst(100);
+//      printUKFGyroEst(100);
 //  printControlOutput(100);
 //  printMotorOutput(100);
-  printMotorCmdOutput(100);
+//  printMotorCmdOutput(100);
 //      printLoopRate(10);
   SERIAL_PORT.println();
 #else
