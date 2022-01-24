@@ -2,7 +2,7 @@
 //Author: Animesh Shastry
 //========================================================================================================================//
 
-#if (!ROS_COMM)
+#if (!ROS_COMM && !sq_UKF)
 
 #include "VehicleParameters.h"
 #define alpha 5e-3
@@ -13,7 +13,6 @@
 #define y_dim 6
 
 const double lambda = alpha * alpha * (x_dim + kappa) - x_dim;
-ArrayMatrix<3, 1, double> e3 = {0, 0, 1.0};
 
 ArrayMatrix<x_dim, 1, double> x;
 ArrayMatrix < x_dim, 2 * x_dim + 1, double > x_sigma_pts, x_sigma_pts_pr;
@@ -32,8 +31,8 @@ void UKFSetup() {
 
   const double dt = 1.0 / loop_freq;
 
-  D(0, 0) = 1e-4; //s1
-  D(1, 1) = 1e-4; //s2
+  D(0, 0) = 1e-7; //s1
+  D(1, 1) = 1e-7; //s2
   D(2, 2) = .3; //w1
   D(3, 3) = .3; //w2
   D(4, 4) = .3; //w3
@@ -109,9 +108,13 @@ void UKFUpdate() {
 //    Serial << " DELTA_Y: " << ((~(meas - y)) * (meas - y))(0, 0);
     //    Serial.println(current_time);
   }
-//  Serial << " DELTA_Y: " << ((~(meas - y)) * (meas - y))(0, 0);
-      
-  //  Serial << "x: " << x << '\n';
+  
+  // compute trace of the covariance matrix
+  trace = 0.0;
+  for (int i = 0; i < x_dim; i++) {
+    trace += Px(i, i);
+  }
+  
 }
 
 ArrayMatrix<x_dim, 1, double> ProcessModel(Matrix<x_dim, 1> x) {
@@ -295,12 +298,12 @@ void GenerateStateSigmaPts() {
 void printUKFRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-//    SERIAL_PORT.print(F(" UKF_roll: "));
-//    SERIAL_PORT.print(rpy_UKF(0)*rad2deg);
+    SERIAL_PORT.print(F(" UKF_roll: "));
+    SERIAL_PORT.print(rpy_UKF(0)*rad2deg);
     SERIAL_PORT.print(F(" UKF_pitch: "));
     SERIAL_PORT.print(rpy_UKF(1)*rad2deg);
-//    SERIAL_PORT.print(F(" UKF_yaw: "));
-//    SERIAL_PORT.print(rpy_UKF(2)*rad2deg);
+    SERIAL_PORT.print(F(" UKF_yaw: "));
+    SERIAL_PORT.print(rpy_UKF(2)*rad2deg);
   }
 }
 
@@ -354,11 +357,11 @@ void printTrace(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
     SERIAL_PORT.print(F(" Px_trace: "));
-    double trace = 0.0;
-    for (int i = 0; i < x_dim; i++) {
-      trace += Px(i, i);
-    }
-    SERIAL_PORT.print(1e+3 * trace);
+//    double trace = 0.0;
+//    for (int i = 0; i < x_dim; i++) {
+//      trace += Px(i, i);
+//    }
+    SERIAL_PORT.print(trace);
   }
 }
 

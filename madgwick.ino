@@ -238,12 +238,12 @@ float invSqrt(float x) {
 void printMadgwickRollPitchYaw(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-//    SERIAL_PORT.print(F("roll: "));
-//    SERIAL_PORT.print(rpy(0)*rad2deg);
+    SERIAL_PORT.print(F("roll: "));
+    SERIAL_PORT.print(rpy(0)*rad2deg);
     SERIAL_PORT.print(F(" pitch: "));
     SERIAL_PORT.print(rpy(1)*rad2deg);
-//    SERIAL_PORT.print(F(" yaw: "));
-//    SERIAL_PORT.print(rpy(2)*rad2deg);
+    SERIAL_PORT.print(F(" yaw: "));
+    SERIAL_PORT.print(rpy(2)*rad2deg);
   }
 }
 void printVisualizationYawPitchRoll(int print_rate) {

@@ -2,7 +2,7 @@
 //Author: Animesh Shastry
 //========================================================================================================================//
 
-#if (ROS_COMM)
+#if (ROS_COMM && !sq_UKF)
 
 #include "VehicleParameters.h"
 
@@ -14,8 +14,6 @@
 #define y_dim 9
 
 const double lambda = alpha * alpha * (x_dim + kappa) - x_dim;
-
-ArrayMatrix<3, 1, double> e3 = {0, 0, 1.0};
 
 ArrayMatrix<x_dim, 1, double> x;
 ArrayMatrix < x_dim, 2 * x_dim + 1, double > x_sigma_pts, x_sigma_pts_pr;
@@ -32,14 +30,14 @@ void UKFSetup() {
 
   const double dt = 1.0 / loop_freq;
 
-  D(0, 0) = 1e-3; //s1
-  D(1, 1) = 1e-3; //s2
+  D(0, 0) = 1e-7; //s1
+  D(1, 1) = 1e-7; //s2
   D(2, 2) = .3; //w1
   D(3, 3) = .3; //w2
   D(4, 4) = .3; //w3
-  D(5, 5) = 1e-1; //vx
-  D(6, 6) = 1e-1; //vy
-  D(7, 7) = 1e-1; //vz
+  D(5, 5) = 1.0; //vx
+  D(6, 6) = 1.0; //vy
+  D(7, 7) = 1.0; //vz
   D = D * dt;
 
   N(0, 0) = acc_noise; //accx
@@ -51,8 +49,7 @@ void UKFSetup() {
   N(6, 6) = VIO_noise; //viox
   N(7, 7) = VIO_noise; //vioy
   N(8, 8) = VIO_noise; //vioz
-  
-  //    N = N*N;
+  N = N * N;
 
   x(0) = 0.0; //s1
   x(1) = 0.0; //s2
@@ -105,7 +102,7 @@ void UKFUpdate() {
   Py += N;
 
   ArrayMatrix<x_dim, y_dim, double> K = Pxy * (Py.Inverse());
-//  ArrayMatrix<y_dim, 1, double> meas = {Acc(0), Acc(1), Acc(2), Gyro(0), Gyro(1), Gyro(2), VIO_vel(0), VIO_vel(1), VIO_vel(2)};
+  //  ArrayMatrix<y_dim, 1, double> meas = {Acc(0), Acc(1), Acc(2), Gyro(0), Gyro(1), Gyro(2), VIO_vel(0)*0, VIO_vel(1)*0, VIO_vel(2)*0};
   ArrayMatrix<y_dim, 1, double> meas = Acc && Gyro && VIO_vel;
 
   x += K * (meas - y);
@@ -119,16 +116,20 @@ void UKFUpdate() {
   body_vel(0) = x(5);
   body_vel(1) = x(6);
   body_vel(2) = x(7);
-  // x(2) = x(3) = x(4) = 0;
-  //  Serial << "x: " << x << '\n';
 
-  if (((~(meas - y)) * (meas - y))(0, 0) > CRASH_THRES && current_time * micros2secs > 3) {
+  // collision detection
+  if (((~(meas - y)) * (meas - y))(0, 0) > CRASH_THRES && current_time * micros2secs > 3 && !disarmed) {
     crashed = true;
     //Serial << " DELTA_Y: " << ((~(meas - y)) * (meas - y))(0, 0);
     //    Serial.println(current_time);
   }
-  //  if (abs(x(5))<0.1) x(3) = 0.0;
-  //  if (abs(x(6))<0.1) x(2) = 0.0;
+
+  // compute trace of the covariance matrix
+  trace = 0.0;
+  for (int i = 0; i < x_dim; i++) {
+    trace += Px(i, i);
+  }
+
 }
 
 Point translation_dynamics(ArrayMatrix<x_dim, 1, double> x) {
@@ -149,12 +150,16 @@ Point translation_dynamics(ArrayMatrix<x_dim, 1, double> x) {
   Point Force_Aero = Aerodynamics(v);
 
   Point v_dot = (Force_Aero) / mass - omega.CrossProduct(v);
-  //  Point v_dot = (e3 * Thrust + Force_Aero) / mass - (RTe3 * gravity(2) + omega.CrossProduct(v));
+  
+  if (rc_knob > 0.8) {
+    v_dot += (e3 * Thrust) / mass - RTe3 * gravity(2);
+  }
+
   return v_dot;
 }
 
 Point angular_dynamics(ArrayMatrix<x_dim, 1, double> x) {
-  
+
   double s1 = x(0);
   double s2 = x(1);
   Point omega;
@@ -172,7 +177,7 @@ Point angular_dynamics(ArrayMatrix<x_dim, 1, double> x) {
   Point cross_term = omega.CrossProduct(Iw);
   Point Torque_Aero = rCP.CrossProduct(Force_Aero);
   Point omega_dot = (Inertia.Inverse()) * (- cross_term + Torque_Aero);
-  //  Point omega_dot = (Inertia.Inverse()) * (Torque - cross_term + Torque_Aero);
+  //Point omega_dot = (Inertia.Inverse()) * (Torque * rc_knob - cross_term + Torque_Aero);
   return omega_dot;
 }
 
@@ -228,8 +233,8 @@ ArrayMatrix<y_dim, 1, double> MeasurementModel(ArrayMatrix<x_dim, 1, double> x) 
   Point gyro_meas = omega;
   //  Point gyro_meas = omega + GyroBias;
   Point vio_meas = v;
-  
-  ArrayMatrix<y_dim, 1, double> y = accel_meas && gyro_meas && v;
+
+  ArrayMatrix<y_dim, 1, double> y = accel_meas && gyro_meas && vio_meas;
   return y;
 }
 
@@ -477,10 +482,10 @@ void printTrace(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
     SERIAL_PORT.print(F(" Px_trace: "));
-    double trace = 0.0;
-    for (int i = 0; i < x_dim; i++) {
-      trace += Px(i, i);
-    }
+//    trace = 0.0;
+//    for (int i = 0; i < x_dim; i++) {
+//      trace += Px(i, i);
+//    }
     SERIAL_PORT.print(trace);
   }
 }

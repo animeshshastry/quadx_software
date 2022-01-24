@@ -3,6 +3,36 @@
 
 //========================================================================================================================//
 
+int convertBinToDec(boolean Bin[]) {
+  int ReturnInt = 0;
+  for (int i = 0; i < 8; i++) {
+    if (Bin[7 - i]) {
+      ReturnInt += 1<<i;
+    }
+  }
+  return ReturnInt;
+}
+
+void convertDecToBin(int Dec, boolean Bin[]) {
+  for(int i = 8 ; i >= 0 ; i--) {
+    if(pow(2, i)<=Dec) {
+      Dec = Dec - pow(2, i);
+      Bin[8-(i+1)] = 1;
+    } else {
+      Bin[8-(i+1)] = 0;
+    }
+  }
+}
+
+int sign(double a){
+  if (a<0) return -1;
+  else return 1;
+}
+
+double QuadraticSolve(double a, double b, double c) {
+  return (-b+sqrt(b*b-4*a*c))/(2*a);
+}
+
 Point EulerAnglesFrom(Rotation R) {
   Matrix<3, 2> Eul_set = R.ToEulerAngles();
   //  Serial << "Euler angles: " << Eul_set  << "\n";
@@ -28,12 +58,34 @@ Matrix<3, 3> hat(Point a) {
 
 Point Aerodynamics(Point v) {
   Point Force_Aero;
+#if (use_linear_drag)
   Force_Aero(0) = -CD(0) * v(0);
   Force_Aero(1) = -CD(1) * v(1);
   Force_Aero(2) = -CD(2) * v(2);
-  //  Force_Aero(0) = -CD(0) * abs(v(0)) * v(0);
-  //  Force_Aero(1) = -CD(1) * abs(v(1)) * v(1);
-  //  Force_Aero(2) = -CD(2) * abs(v(2)) * v(2);
+#else
+  Force_Aero(0) = -CDx * abs(v(0)) * v(0);
+  Force_Aero(1) = -CDy * abs(v(1)) * v(1);
+  Force_Aero(2) = -CDz * abs(v(2)) * v(2);
+#endif
+  return Force_Aero;
+}
+
+Point Aerodynamics2(Point v, Point va) {
+  Point Force_Aero;
+#if (use_linear_drag)
+  Force_Aero(0) = -CD(0) * v(0);
+  Force_Aero(1) = -CD(1) * v(1);
+  Force_Aero(2) = -CD(2) * v(2);
+#else
+//  Force_Aero(0) = -va(0) * va(0) * abs(v(0)) * v(0);
+//  Force_Aero(1) = -va(1) * va(1) * abs(v(1)) * v(1);
+//  Force_Aero(2) = -va(2) * va(2) * abs(v(2)) * v(2);
+  Force_Aero(0) = -abs(va(0)) * abs(v(0)) * v(0);
+  Force_Aero(1) = -abs(va(1)) * abs(v(1)) * v(1);
+//  if (abs(v(1))>2.0) Force_Aero(1) = -abs(va(1)) * abs(v(1)) * v(1);
+//  else Force_Aero(1) = 0.0;
+  Force_Aero(2) = -abs(va(2)) * abs(v(2)) * v(2);
+#endif
   return Force_Aero;
 }
 

@@ -210,9 +210,9 @@ void getDesState() {
   */
   
   //Mode change
-  if (channel_5_pwm > 800 && channel_5_pwm < 1200) mode = 0; //Acro mode
-  else if (channel_5_pwm > 1300 && channel_5_pwm < 1700) mode = 1; //Manual mode
-  else mode = 2; //Velocity hold mode
+  if (channel_5_pwm > 800 && channel_5_pwm < 1200) mode = 0;
+  else if (channel_5_pwm > 1300 && channel_5_pwm < 1700) mode = 1;
+  else mode = 2;
 
   //arming
   if (channel_8_pwm > 1500 && !crashed) arm_motors();
@@ -221,13 +221,19 @@ void getDesState() {
   // reset switch
   if (channel_7_pwm > 1500){
     crashed = false;
+#if (sq_UKF)
+    ukf_init();
+#endif
+    wx = 0.0; wy = 0.0; wz = 0.0; wpsi = 0.0;
+    t0 = current_time*micros2secs;
   }
 
   // parameter tuning knob
-  rc_knob = 2.0*(channel_6_pwm - 1000.0) / 1000.0; //between 0 and 2
+  rc_knob = (channel_6_pwm - 1000.0) / 1000.0; //between 0 and 1
+  rc_knob = constrain(rc_knob, 0.0, 1.0) * 2.0; //between 0 and 2
   
   switch (mode) {
-    case 0: // ACRO MODE
+    case 3: // ACRO MODE
       v_des.Fill(0.0);
       v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between -1 and 1
       v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
@@ -247,10 +253,11 @@ void getDesState() {
       R_des.FromEulerAngles(rpy_des(0), rpy_des(1), rpy_des(2));
       break;
 
-    case 1: // MANUAL MODE
+    case 0: // MANUAL MODE
       v_des.Fill(0.0);
       v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between 0 and 1
-      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
+      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxvz; //between -maxv and +maxv
+      if (v_des(2) < -0.9*maxvz) {v_des(2) = -20.0;}
       thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
       rpy_des(0) = (channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
       rpy_des(1) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
@@ -260,7 +267,7 @@ void getDesState() {
       // for yaw_rate control
       omega_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
       omega_des(2) = constrain(omega_des(2), -1.0, 1.0) * maxYawRate;
-      rpy_des(2) = rpy(2);
+      rpy_des(2) = rpy_UKF(2);
       
       //Constrain within normalized bounds
       thro_des = constrain(thro_des, 0.0, 1.0); //between 0 and 1
@@ -269,20 +276,122 @@ void getDesState() {
       R_des.FromEulerAngles(rpy_des(0), rpy_des(1), rpy_des(2));
       break;
 
-    case 2: // VELOCITY HOLD
+    case 4: // VELOCITY HOLD
       v_des(0) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
       v_des(1) = -(channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
-      v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between 0 and 1
+      v_des(2) = (channel_1_pwm - 1500.0) / 500.0; //between -1 and 1
+      if (v_des(0)< 0.1 && v_des(0) > -0.1) {v_des(0) = 0.0;}
+      if (v_des(1)< 0.1 && v_des(1) > -0.1) {v_des(1) = 0.0;}
+      if (v_des(2)< 0.1 && v_des(2) > -0.1) {v_des(2) = 0.0;}
       v_des(0) = constrain(v_des(0), -1.0, 1.0) * maxv; //between -maxv and +maxv
       v_des(1) = constrain(v_des(1), -1.0, 1.0) * maxv; //between -maxv and +maxv
-      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxv; //between -maxv and +maxv
-      thro_des = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
-      rpy_des(0) = 0.0;
-      rpy_des(1) = 0.0;
-      rpy_des(2) = (channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
-      rpy_des(2) = constrain(rpy_des(2), -1.0, 1.0) * maxYaw; //between -maxYaw and +maxYaw
+      v_des(2) = constrain(v_des(2), -1.0, 1.0) * maxvz; //between -maxv and +maxv
+      // for yaw_rate control
       omega_des.Fill(0.0);
+      omega_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      if (omega_des(2)< 0.1 && omega_des(2) > -0.1) {omega_des(2) = 0.0;}
+      omega_des(2) = constrain(omega_des(2), -1.0, 1.0) * maxYawRate;
+      rpy_des(2) = rpy_UKF(2);
       break;
+
+    case 1: // POSITION HOLD
+      v_des.Fill(0.0);
+      pos_des(0) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      pos_des(1) = -(channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      pos_des(2) = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
+      if (pos_des(0)< 0.1 && pos_des(0) > -0.1) {pos_des(0) = 0.0;}
+      if (pos_des(1)< 0.1 && pos_des(1) > -0.1) {pos_des(1) = 0.0;}
+      pos_des(0) = constrain(pos_des(0), -1.0, 1.0) * maxpos_x;
+      pos_des(1) = constrain(pos_des(1), -1.0, 1.0) * maxpos_y;
+      pos_des(2) = constrain(pos_des(2), 0.0, 1.0) * maxpos_z - 1.0;
+      //if (pos_des(2)< 0.1) {pos_des(2) = -1.0;}
+
+      omega_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      if (omega_des(2)< 0.1 && omega_des(2) > -0.1) {omega_des(2) = 0.0;}
+      omega_des(2) = constrain(omega_des(2), -1.0, 1.0) * maxYawRate;
+      rpy_des(2) += omega_des(2) * dt;
+      omega_des.Fill(0.0);
+      
+      //rpy_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      //rpy_des(2) = constrain(rpy_des(2), -1.0, 1.0) * maxYaw; //between -maxYaw and +maxYaw
+      break;
+
+      case 5: // POSITION HOLD WITH Aero
+      v_des.Fill(0.0);
+      pos_des(0) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      pos_des(1) = -(channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      pos_des(2) = (channel_1_pwm - 1000.0) / 1000.0; //between 0 and 1
+      if (pos_des(0)< 0.1 && pos_des(0) > -0.1) {pos_des(0) = 0.0;}
+      if (pos_des(1)< 0.1 && pos_des(1) > -0.1) {pos_des(1) = 0.0;}
+      pos_des(0) = constrain(pos_des(0), -1.0, 1.0) * maxpos_x;
+      pos_des(1) = constrain(pos_des(1), -1.0, 1.0) * maxpos_y;
+      pos_des(2) = constrain(pos_des(2), 0.0, 1.0) * maxpos_z - 1.0;
+      //if (pos_des(2)< 0.1) {pos_des(2) = -1.0;}
+
+      omega_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      if (omega_des(2)< 0.1 && omega_des(2) > -0.1) {omega_des(2) = 0.0;}
+      omega_des(2) = constrain(omega_des(2), -1.0, 1.0) * maxYawRate;
+      rpy_des(2) += omega_des(2) * dt;
+      omega_des.Fill(0.0);
+      
+      //rpy_des(2) = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      //rpy_des(2) = constrain(rpy_des(2), -1.0, 1.0) * maxYaw; //between -maxYaw and +maxYaw
+      break;
+      
+      case 2: // Frequency Response Mode or Predefined Trajectory Tracking Mode
+      Point Amplitude;
+      double yaw_Amplitude;
+      
+      Amplitude(0) = (channel_3_pwm - 1500.0) / 500.0; //between -1 and 1
+      Amplitude(1) = (channel_2_pwm - 1500.0) / 500.0; //between -1 and 1
+      Amplitude(2) = (channel_1_pwm - 1500.0) / 500.0; //between -1 and 1
+      yaw_Amplitude = -(channel_4_pwm - 1500.0) / 500.0; //between -1 and 1
+      
+      if (Amplitude(0)< 0.1 && Amplitude(0) > -0.1) {Amplitude(0) = 0.0;}
+      if (Amplitude(1)< 0.1 && Amplitude(1) > -0.1) {Amplitude(1) = 0.0;}
+      if (Amplitude(2)< 0.1 && Amplitude(2) > -0.1) {Amplitude(2) = 0.0;}
+      if (yaw_Amplitude< 0.1 && yaw_Amplitude > -0.1) {yaw_Amplitude = 0.0;}
+      
+      Amplitude(0) = constrain(Amplitude(0), -1.0, 1.0) * maxpos_x * 1.0;
+      Amplitude(1) = constrain(Amplitude(1), -1.0, 1.0) * maxpos_y * 1.0;
+      Amplitude(2) = constrain(Amplitude(2), -1.0, 1.0) * maxpos_z * 0.5;
+      yaw_Amplitude = constrain(yaw_Amplitude, -1.0, 1.0) * maxYaw * 0.25;
+      
+      if (Amplitude(2) < 0) {
+        Amplitude.Fill(0.0);
+        yaw_Amplitude = 0.0;
+        wzt = 0.0;
+      }
+
+      // Trajectory
+      pos_des(0) = Amplitude(0)*cos(wxt);
+      pos_des(1) = Amplitude(1)*sin(wyt);
+      pos_des(2) = 1.5+Amplitude(2)*sin(wzt);
+      
+      v_des(0) = -Amplitude(0)*wx*sin(wxt);
+      v_des(1) = Amplitude(1)*wy*cos(wyt);
+      v_des(2) = Amplitude(2)*wz*cos(wzt); 
+
+      acc_des(0) = -Amplitude(0)*wx*wx*cos(wxt);
+      acc_des(1) = -Amplitude(1)*wy*wy*sin(wyt);
+      acc_des(2) = -Amplitude(2)*wz*wz*sin(wzt);
+
+      rpy_des(2) = yaw_Amplitude*sin(wpsit);
+//      rpy_des(2) = - PI + atan2(pos_des(1),pos_des(0)); // POints to center (0,0)
+//      rpy_des(2) = -3.14 + wxt; // POints to center (0,0)
+//      rpy_des(2) = atan2(v_des(1),v_des(0));
+      
+#if (FREQ_RES)
+      acc_des.Fill(0.0);
+      v_des.Fill(0.0);
+      omega_des.Fill(0.0);
+      rpy_des(2) = yaw_Amplitude*sin(wpsit);
+#else
+      omega_des.Fill(0.0);
+//      omega_des(3) = wx;
+#endif
+      break;
+      
   }
 }
 
@@ -321,6 +430,17 @@ void printDesiredState(int print_rate) {
 //        SERIAL_PORT.print(F("Velocity hold   ")); break;
 //    }
 
+
+    SERIAL_PORT.print(F(" rc_knob: "));
+    SERIAL_PORT.print(rc_knob);
+
+    SERIAL_PORT.print(F(" x_des: "));
+    SERIAL_PORT.print(pos_des(0));
+    SERIAL_PORT.print(F(" y_des: "));
+    SERIAL_PORT.print(pos_des(1));
+    SERIAL_PORT.print(F(" z_des: "));
+    SERIAL_PORT.print(pos_des(2));
+
 //    SERIAL_PORT.print(F(" vx_des: "));
 //    SERIAL_PORT.print(v_des(0));
 //    SERIAL_PORT.print(F(" vy_des: "));
@@ -341,7 +461,7 @@ void printDesiredState(int print_rate) {
 //    SERIAL_PORT.print(omega_des(0)*rad2deg);
 //    SERIAL_PORT.print(F(" omegaY_des: "));
 //    SERIAL_PORT.print(omega_des(1)*rad2deg);
-    SERIAL_PORT.print(F(" omegaZ_des: "));
-    SERIAL_PORT.print(omega_des(2)*rad2deg);
+//    SERIAL_PORT.print(F(" omegaZ_des: "));
+//    SERIAL_PORT.print(omega_des(2)*rad2deg);
   }
 }

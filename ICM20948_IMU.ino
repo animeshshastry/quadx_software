@@ -154,20 +154,20 @@ void printAccData(int print_rate) {
     SERIAL_PORT.print(F(" accY: "));
     SERIAL_PORT.print(acc_plot_scaling * Acc.Y());
     SERIAL_PORT.print(F(" accZ: "));
-    SERIAL_PORT.print(acc_plot_scaling * (Acc.Z()-9.81));
+    SERIAL_PORT.print(acc_plot_scaling * (Acc.Z()-gravity(2)));
   }
 }
 
 void printGyroData(int print_rate) {
   if ( (current_time - print_counter) * micros2secs > (1.0 / print_rate)) {
     print_counter = micros();
-#define gyro_plot_scaling rad2deg
-//    SERIAL_PORT.print(F(" gyroX: "));
-//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
+#define gyro_plot_scaling 100*rad2deg
+    SERIAL_PORT.print(F(" gyroX: "));
+    SERIAL_PORT.print(gyro_plot_scaling * Gyro.X());
     SERIAL_PORT.print(F(" gyroY: "));
     SERIAL_PORT.print(gyro_plot_scaling * Gyro.Y());
-//    SERIAL_PORT.print(F(" gyroZ: "));
-//    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Z());
+    SERIAL_PORT.print(F(" gyroZ: "));
+    SERIAL_PORT.print(gyro_plot_scaling * Gyro.Z());
   }
 }
 
