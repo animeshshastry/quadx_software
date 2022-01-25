@@ -1,4 +1,4 @@
-# quadx_firmware
+# quadx_software
  
 ### Made for self-calibration, system-identification and gust rejection demonstration. Tested on Teensy 4.0
 
