@@ -21,7 +21,7 @@ Estimator: sq-UKF | Status: Complete<br/>
 
 This software was developed to satisfy the following objectives:
 
-Primary Goal 1: Demonstration of self-calibration | Status: Partially Complete<br/>
+Primary Goal 1: Demonstration of self-calibration | Status: In Progress <br/>
 Primary Goal 2: Demonstration of unsteady wind rejection | Status: Complete<br/>
 
 Secondary Goal 1: Nonlinear control testing | Status: Complete<br/>
