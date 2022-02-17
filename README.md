@@ -2,9 +2,9 @@
  
 ### Made for self-calibration, system-identification and gust rejection demonstration. Tested on Teensy 4.0
 
-A user-friendly software designed for testing advanced control and estimation algorithms without the headache of modifying PX4, Ardupilot, Betaflight or other firmwares. It uses C++ templates and matrix class, through which standard operators are overridden and used naturally in algebraic expressions, which results in simplistic Matlab-type syntaxes. Though, currently the code is dirty and more cleaning is needed. Microcontroller version of Eigen is also present in the libraries with UKF and sq-UKF implementations.
+A user-friendly software designed for testing advanced control and estimation algorithms. Relieves the headache of modifying PX4, Ardupilot, Betaflight or other firmwares. It uses C++ templates and matrix class, through which standard operators are overridden and used naturally in algebraic expressions, which results in simplistic Matlab-type syntaxes. But, currently the code is dirty and more cleaning is needed. Microcontroller version of Eigen is also present in the libraries with unscented Kalman filter (UKF) and square-root unscented Kalman filter (sq-UKF) implementations.
 
-This software is in experimental release state and is currently being built and tested on a quadcopter / quadrotor. To use SE(3) controller, VIO data input through rosserial is required. More documentation on this is coming soon.
+This software is in experimental release state and is currently being built and tested on a quadcopter / quadrotor. To use the geometric SE(3) controller, VIO data input through rosserial is required. More documentation on this is coming soon.
 
 To use this software follow these 4 easy steps:
 1.  Clone this repository in your Arduino folder.
